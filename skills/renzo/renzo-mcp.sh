@@ -3,7 +3,7 @@ set -euo pipefail
 
 # SECURITY MANIFEST:
 #   Environment variables accessed: none
-#   External endpoints called: https://mcp.renzoprotocol.com/mcp (only)
+#   External endpoints called: https://mcp.renzoprotocol.com/mcp (only, via JSON-RPC POST)
 #   Local files read: none
 #   Local files written: none
 
@@ -19,7 +19,8 @@ Tools:
   get_supported_chains                   List supported blockchain networks
   get_operators [arguments_json]         List operators (optional: {"product":"ezETH"})
   get_vaults [arguments_json]            List vaults (optional: {"ecosystem":"eigenlayer"})
-  get_vault_details <arguments_json>     Vault details (required: {"vaultId":"ezREZ"})
+  get_vault_details <arguments_json>     Vault details + live LTV (required: {"vaultId":"ezREZ"})
+  get_vault_strategy <arguments_json>    AVS allocations & operators for EigenLayer vaults (required: {"vaultId":"ezETH"})
   get_token_balances <arguments_json>    User's Renzo token balances (required: {"address":"0x..."})
   get_withdrawal_requests <arguments_json> User's pending ezETH withdrawals (required: {"address":"0x..."})
 
@@ -28,6 +29,7 @@ Examples:
   renzo-mcp.sh get_vaults '{"ecosystem":"jito"}'
   renzo-mcp.sh get_vault_details '{"vaultId":"ezREZ"}'
   renzo-mcp.sh get_operators '{"product":"pzETH"}'
+  renzo-mcp.sh get_vault_strategy '{"vaultId":"ezETH"}'
   renzo-mcp.sh get_token_balances '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}'
   renzo-mcp.sh get_withdrawal_requests '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}'
 USAGE
@@ -48,6 +50,7 @@ VALID_TOOLS=(
   get_operators
   get_vaults
   get_vault_details
+  get_vault_strategy
   get_token_balances
   get_withdrawal_requests
 )

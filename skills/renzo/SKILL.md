@@ -26,6 +26,8 @@ Activate this skill when the user asks about:
 - Institutional vault management on Renzo
 - Their Renzo token balances or portfolio (given an Ethereum address)
 - ezETH withdrawal requests, unstaking status, or cooldown timers
+- Vault strategies, AVS allocations, or where vault capital is deployed
+- LTV ratios, leverage, or risk parameters for reserve vaults (ezCompETH1, ezUSCC1)
 
 ## Available Tools
 
@@ -37,7 +39,8 @@ The helper script `renzo-mcp.sh` (located in this skill's directory) calls the R
 | `get_protocol_stats` | Aggregate protocol stats: total TVL, APRs, chain count | None |
 | `get_supported_chains` | List of blockchain networks Renzo operates on | None |
 | `get_vaults` | List vaults with TVL and APR | Optional: `{"ecosystem":"eigenlayer"}` (eigenlayer, symbiotic, jito, generic) |
-| `get_vault_details` | Detailed info for one vault | Required: `{"vaultId":"<symbol_or_address>"}` |
+| `get_vault_details` | Detailed info for one vault, including live LTV for reserve vaults | Required: `{"vaultId":"<symbol_or_address>"}` |
+| `get_vault_strategy` | AVS allocations, staking %, and operators for EigenLayer vaults | Required: `{"vaultId":"<symbol>"}` (ezETH, ezEIGEN, ezREZ) |
 | `get_operators` | List protocol operators | Optional: `{"product":"ezETH"}` (ezETH, pzETH, ezSOL, etc.) |
 | `get_token_balances` | User's Renzo token balances (ezETH, pzETH, vault LPs) with ETH/USD values | Required: `{"address":"0x..."}` (Ethereum address) |
 | `get_withdrawal_requests` | User's pending ezETH withdrawal requests with claimability and time remaining | Required: `{"address":"0x..."}` (Ethereum address) |
@@ -58,6 +61,8 @@ Run the helper script via the Bash tool. The script path is relative to this ski
 
 # With required argument
 ./skills/renzo/renzo-mcp.sh get_vault_details '{"vaultId":"ezREZ"}'
+./skills/renzo/renzo-mcp.sh get_vault_details '{"vaultId":"ezCompETH1"}'
+./skills/renzo/renzo-mcp.sh get_vault_strategy '{"vaultId":"ezETH"}'
 
 # User-specific queries (require an Ethereum address)
 ./skills/renzo/renzo-mcp.sh get_token_balances '{"address":"0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045"}'
@@ -109,6 +114,84 @@ When listing vaults, use a table:
 For general "tell me about Renzo" questions, call `get_protocol_stats` and `get_ezeth_info` together, then summarize:
 
 > Renzo is a liquid restaking protocol with **$469.5M total TVL** across **8 chains**. The flagship product ezETH earns **2.84% APR** with pzETH at **2.34% APR**. The protocol spans both EVM chains (Ethereum, Arbitrum, Base, Linea, BNB Chain, Mode, Blast) and Solana.
+
+### Example: Reserve Vault with Live LTV
+
+The `get_vault_details` tool now returns a `strategy` block for reserve vaults (ezCompETH1, ezUSCC1) with live on-chain LTV data:
+```json
+{
+  "symbol": "ezCompETH1",
+  "tvlUsd": 965393.86,
+  "aprPercent": 3.78,
+  "strategy": {
+    "protocols": ["Renzo", "Compound V3"],
+    "description": "Automates leveraged looping on Compound Finance to amplify ezETH staking and restaking rewards.",
+    "parameters": [
+      { "label": "Current LTV", "value": "80.00%" },
+      { "label": "Target LTV", "value": "80%" },
+      { "label": "Maximum LTV", "value": "89.90%" }
+    ]
+  }
+}
+```
+
+Present this as:
+> **ezCompETH1** earns **3.78% APR** ($965.4K TVL) via leveraged looping on Compound V3.
+>
+> | Parameter | Value |
+> |-----------|-------|
+> | Current LTV | 80.00% |
+> | Target LTV | 80% |
+> | Maximum LTV (liquidation) | 89.90% |
+>
+> The vault is operating at its target LTV with a 9.9% buffer before liquidation.
+
+For ezUSCC1 (Aave Horizon), similar strategy data is returned with additional fields: Effective Vault LTV, Position LTV, Market Target LTV, and Max Asset Utilization.
+
+### Example: Vault Strategy (AVS Allocations)
+
+The `get_vault_strategy` tool returns where an EigenLayer vault's capital is deployed:
+```json
+{
+  "vault": { "symbol": "ezETH", "ecosystem": "eigenlayer" },
+  "underlyingTvl": 212785.80,
+  "allocations": [
+    {
+      "avs": "EigenDA",
+      "description": "EigenDA is a data availability store...",
+      "stakedAmount": 128772.95,
+      "percentOfTvl": 60.52,
+      "operators": ["0xdfcb...", "0x5cd6...", "0x5dcd..."]
+    },
+    {
+      "avs": "Aligned",
+      "stakedAmount": 181405.06,
+      "percentOfTvl": 85.25,
+      "operators": ["0xdfcb...", "0x3f98...", "0x5cd6...", "0x5dcd..."]
+    }
+  ],
+  "operators": [
+    { "id": "luganodes", "name": "Luganodes", "link": "https://www.luganodes.com/" },
+    { "id": "figment", "name": "Figment", "link": "https://figment.io/" }
+  ]
+}
+```
+
+Present this as:
+> **ezETH Strategy** — EigenLayer vault with **212,786 ETH** staked across 16 AVS services.
+>
+> Top AVS allocations:
+>
+> | AVS | Staked (ETH) | % of TVL |
+> |-----|-------------|----------|
+> | Aligned | 181,405 | 85.25% |
+> | EigenDA | 128,773 | 60.52% |
+> | AltLayer | 74,516 | 35.02% |
+> | Witness Chain | 54,591 | 25.66% |
+>
+> Operators: Figment, Luganodes, Pier Two, HashKey Cloud
+>
+> Note: Percentages sum to more than 100% because capital is restaked across multiple AVS services simultaneously.
 
 ### Example: Token Balances Response
 
@@ -190,6 +273,8 @@ If `requests` is empty, tell the user they have no pending ezETH withdrawals.
 | Available vaults, vault yields, vault comparison | `get_vaults` |
 | Specific vault details (by name or symbol) | `get_vault_details` with the vault symbol |
 | EigenLayer operators, validators, delegation | `get_operators` |
+| AVS allocations, where capital is staked, restaking strategy | `get_vault_strategy` with the vault symbol |
+| Vault LTV, leverage, risk parameters (reserve vaults) | `get_vault_details` with the vault symbol |
 | General Renzo overview | `get_protocol_stats` + `get_ezeth_info` |
 | "What yield can I get?" | `get_vaults` (shows all vault APRs) |
 | "What are my Renzo balances?" (given an address) | `get_token_balances` with the address |
