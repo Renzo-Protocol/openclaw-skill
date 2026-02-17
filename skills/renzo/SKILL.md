@@ -1,6 +1,6 @@
 ---
 name: renzo
-description: Query Renzo protocol data — ezETH metrics, vault yields, TVL, supported chains, and EigenLayer operators.
+description: Query Renzo crypto liquid restaking protocol — DeFi vault yields, TVL, ezETH exchange rates, EigenLayer operators, and supported Ethereum and Solana blockchain networks.
 metadata:
   openclaw:
     emoji: "\U0001F7E2"
