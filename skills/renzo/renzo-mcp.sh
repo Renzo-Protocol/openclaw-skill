@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# SECURITY MANIFEST:
+#   Environment variables accessed: none
+#   External endpoints called: https://mcp.renzoprotocol.com/mcp (only)
+#   Local files read: none
+#   Local files written: none
+
 MCP_URL="https://mcp.renzoprotocol.com/mcp"
 
 usage() {

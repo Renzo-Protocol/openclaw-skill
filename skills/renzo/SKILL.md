@@ -1,11 +1,13 @@
 ---
 name: renzo
 description: Query Renzo crypto liquid restaking protocol — DeFi vault yields, TVL, ezETH exchange rates, EigenLayer operators, supported blockchain networks, user token balances, and withdrawal status.
+homepage: https://github.com/Renzo-Protocol/openclaw-skill
 metadata:
-  openclaw:
+  clawdbot:
     emoji: "\U0001F7E2"
     requires:
       bins: ["curl", "jq"]
+    files: ["renzo-mcp.sh"]
 ---
 
 # Renzo Protocol
@@ -197,6 +199,27 @@ If `requests` is empty, tell the user they have no pending ezETH withdrawals.
 When the user asks about a specific vault by name, first call `get_vaults` to find the symbol, then call `get_vault_details` with that symbol.
 
 When the user provides an Ethereum address (0x..., 42 hex characters), use it directly with `get_token_balances` or `get_withdrawal_requests`. If the user asks about "my position" or "my balance" without providing an address, ask them for their Ethereum address first.
+
+## External Endpoints
+
+| Endpoint | Method | Data Sent | Purpose |
+|----------|--------|-----------|---------|
+| `https://mcp.renzoprotocol.com/mcp` | POST | JSON-RPC tool name and arguments (e.g., vault ID, ecosystem filter, Ethereum address) | All Renzo MCP queries |
+
+No other endpoints are contacted. The helper script calls only the Renzo MCP server listed above.
+
+## Security & Privacy
+
+- **No credentials required**: The Renzo MCP endpoint is public and requires no API keys or authentication tokens.
+- **No local file access**: The script does not read or write any files on your machine.
+- **No persistent state**: Nothing is stored between invocations.
+- **Input validation**: Tool names are validated against a hardcoded allowlist. JSON arguments are validated with `jq` before being sent. User-provided values are passed safely via `jq --argjson` (no shell interpolation of user input into URLs or commands).
+- **Data sent externally**: When querying user-specific tools (`get_token_balances`, `get_withdrawal_requests`), the Ethereum address you provide is sent to the Renzo MCP server. No other personal data is transmitted.
+- **Data received**: All responses are read-only protocol data (token balances, APRs, TVL figures). No executable content is returned or evaluated.
+
+## Trust Statement
+
+By using this skill, queries are sent to the Renzo Protocol MCP server at `https://mcp.renzoprotocol.com/mcp`. For user-specific tools, your Ethereum address is shared with this server. Only install this skill if you trust Renzo Protocol with this information. Source code is available at https://github.com/Renzo-Protocol/openclaw-skill.
 
 ## Error Handling
 
