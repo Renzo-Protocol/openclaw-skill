@@ -114,6 +114,13 @@ if [[ -n "$ERROR" ]]; then
   exit 1
 fi
 
+# Tool errors come back as a result with isError: true and a plain-text message
+if [[ "$(echo "$JSON_DATA" | jq -r '.result.isError // false')" == "true" ]]; then
+  echo "Error from MCP server:" >&2
+  echo "$JSON_DATA" | jq -r '.result.content[0].text' >&2
+  exit 1
+fi
+
 # Extract the text content from the MCP response wrapper
 # result.content is an array of {type, text} blocks
 echo "$JSON_DATA" | jq -r '.result.content[0].text' | jq .
